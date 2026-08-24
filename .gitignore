@@ -47,17 +47,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Secretos locales (licencia Luxand, etc.)
-/lib/config/local_secrets.dart
-
-# Keystore de firma Android (nunca subir)
-/keys/
-*.jks
-*.keystore
-*.p12
-
-# FaceSDK 3DiVi (binarios, modelos y licencia)
-/assets/conf/
-/assets/license/
-/assets/share/
-/assets/lib/
+# La organización pidió versionar secretos, keystore, licencia y assets 3DiVi.
