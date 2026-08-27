@@ -21,7 +21,7 @@ Implementar el flujo:
 - Backend para registro de empleado.
 - Backend para subir foto del empleado.
 - Base de aplicación Flutter.
-- Plugin **3DiVi Face SDK 3.26.1** (`face_sdk_3divi` en `C:\Users\olive\3DiVi_FaceSDK\3_26_1`).
+- Plugin **3DiVi Face SDK 3.31.00** (`face_sdk_3divi` en `../../3DIVI_FaceSDK/face_sdk_3`, ver README).
 - Assets locales: `assets/conf`, `assets/lib`, `assets/share`, `assets/license/3divi_face_sdk.lic` (gitignored).
 - **Fase 1 completada (Luxand, histórica):** `FaceSdkService` y pantalla de prueba biométrica.
 - **Fase 2 completada:** flujo QR → empleado → referencia → captura → liveness → match 1:1 → resultado.

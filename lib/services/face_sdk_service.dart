@@ -50,7 +50,7 @@ class FaceSdkDiagnostics {
 
 /// Inicialización y operaciones de bajo nivel sobre 3DiVi Face SDK.
 class FaceSdkService {
-  static const String _sdkVersion = '3DiVi Face SDK 3.26.1';
+  static const String _sdkVersion = '3DiVi Face SDK 3.31.00';
   static const String _detectorModification = 'uld';
   static const String _fitterModification = 'fda';
   static const String _livenessModification = '2d_light';

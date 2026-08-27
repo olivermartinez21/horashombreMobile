@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <License>
 	<name>3DiVi Face SDK License</name>
-	<cc>License#61529 - ESL Android 1-month #0, axel.vera@arinco.io</cc>
+	<cc>License#66540 - #2 Face SDK ESL Android 1-month, axel.vera@arinco.io</cc>
 	<version>3.0.1.2</version>
-	<max_sdk_version>3.30</max_sdk_version>
-	<valid>2026-Aug-13</valid>
-	<VideoEngine>0</VideoEngine>
+	<max_sdk_version>3.31</max_sdk_version>
+	<valid>2026-Sep-24</valid>
 	<matcher6>1</matcher6>
 	<matcher6v2>1</matcher6v2>
 	<matcher6v3>1</matcher6v3>
@@ -39,39 +38,40 @@
 	<matcher12v300>1</matcher12v300>
 	<matcher12v1000>1</matcher12v1000>
 	<matcher_module>1</matcher_module>
-	<templatesindex6>1500</templatesindex6>
-	<templatesindex6v2>1500</templatesindex6v2>
-	<templatesindex6v3>1500</templatesindex6v3>
-	<templatesindex6v4>1500</templatesindex6v4>
-	<templatesindex6v5>1500</templatesindex6v5>
-	<templatesindex6v6>1500</templatesindex6v6>
-	<templatesindex6v7>1500</templatesindex6v7>
-	<templatesindex7>1500</templatesindex7>
-	<templatesindex7v2>1500</templatesindex7v2>
-	<templatesindex7v3>1500</templatesindex7v3>
-	<templatesindex7v6>1500</templatesindex7v6>
-	<templatesindex7v7>1500</templatesindex7v7>
-	<templatesindex8v6>1500</templatesindex8v6>
-	<templatesindex8v7>1500</templatesindex8v7>
-	<templatesindex9v30>1500</templatesindex9v30>
-	<templatesindex9v300>1500</templatesindex9v300>
-	<templatesindex9v1000>1500</templatesindex9v1000>
-	<templatesindex9v30mask>1500</templatesindex9v30mask>
-	<templatesindex9v300mask>1500</templatesindex9v300mask>
-	<templatesindex9v1000mask>1500</templatesindex9v1000mask>
-	<templatesindex10v30>1500</templatesindex10v30>
-	<templatesindex10v100>1500</templatesindex10v100>
-	<templatesindex10v1000>1500</templatesindex10v1000>
-	<templatesindex11v30>1500</templatesindex11v30>
-	<templatesindex11v100>1500</templatesindex11v100>
-	<templatesindex11v300>1500</templatesindex11v300>
-	<templatesindex11v1000>1500</templatesindex11v1000>
-	<templatesindex12v30>1500</templatesindex12v30>
-	<templatesindex12v50>1500</templatesindex12v50>
-	<templatesindex12v100>1500</templatesindex12v100>
-	<templatesindex12v300>1500</templatesindex12v300>
-	<templatesindex12v1000>1500</templatesindex12v1000>
-	<template_index>1500</template_index>
+	<verification_module>1</verification_module>
+	<templatesindex6>100000</templatesindex6>
+	<templatesindex6v2>100000</templatesindex6v2>
+	<templatesindex6v3>100000</templatesindex6v3>
+	<templatesindex6v4>100000</templatesindex6v4>
+	<templatesindex6v5>100000</templatesindex6v5>
+	<templatesindex6v6>100000</templatesindex6v6>
+	<templatesindex6v7>100000</templatesindex6v7>
+	<templatesindex7>100000</templatesindex7>
+	<templatesindex7v2>100000</templatesindex7v2>
+	<templatesindex7v3>100000</templatesindex7v3>
+	<templatesindex7v6>100000</templatesindex7v6>
+	<templatesindex7v7>100000</templatesindex7v7>
+	<templatesindex8v6>100000</templatesindex8v6>
+	<templatesindex8v7>100000</templatesindex8v7>
+	<templatesindex9v30>100000</templatesindex9v30>
+	<templatesindex9v300>100000</templatesindex9v300>
+	<templatesindex9v1000>100000</templatesindex9v1000>
+	<templatesindex9v30mask>100000</templatesindex9v30mask>
+	<templatesindex9v300mask>100000</templatesindex9v300mask>
+	<templatesindex9v1000mask>100000</templatesindex9v1000mask>
+	<templatesindex10v30>100000</templatesindex10v30>
+	<templatesindex10v100>100000</templatesindex10v100>
+	<templatesindex10v1000>100000</templatesindex10v1000>
+	<templatesindex11v30>100000</templatesindex11v30>
+	<templatesindex11v100>100000</templatesindex11v100>
+	<templatesindex11v300>100000</templatesindex11v300>
+	<templatesindex11v1000>100000</templatesindex11v1000>
+	<templatesindex12v30>100000</templatesindex12v30>
+	<templatesindex12v50>100000</templatesindex12v50>
+	<templatesindex12v100>100000</templatesindex12v100>
+	<templatesindex12v300>100000</templatesindex12v300>
+	<templatesindex12v1000>100000</templatesindex12v1000>
+	<template_index>100000</template_index>
 	<quality_estimator>1</quality_estimator>
 	<face_quality_estimator>1</face_quality_estimator>
 	<quality_control>1</quality_control>
@@ -122,10 +122,14 @@
 	<processor12v1000>1</processor12v1000>
 	<face_template_extractor>1</face_template_extractor>
 	<VideoClient>1</VideoClient>
+	<object_detector>1</object_detector>
 	<VideoClientExt>1</VideoClientExt>
+	<deepfake_estimator>1</deepfake_estimator>
 	<emotion_estimator>1</emotion_estimator>
 	<emotions_estimator>1</emotions_estimator>
+	<human_body_detector>1</human_body_detector>
 	<desktop_gpu_support>1</desktop_gpu_support>
+	<human_pose_estimator>1</human_pose_estimator>
 	<age_gender_estimator>1</age_gender_estimator>
 	<age_estimator>1</age_estimator>
 	<gender_estimator>1</gender_estimator>
@@ -135,9 +139,7 @@
 	<depth_liveness_estimator>1</depth_liveness_estimator>
 	<ir_liveness_estimator>1</ir_liveness_estimator>
 	<Reg>0</Reg>
-	<android_app_id>dbf7704b50c080d09d1dd26fe2b40defcfdcf1c092832bbd95c0f3889b8e1cb7-com.example.simosemobile</android_app_id>
-	<object_detector>1</object_detector>
-	<human_body_detector>1</human_body_detector>
+	<android_app_id>d75779502ba49bc66c071480f206695b9b0457f2f148b0a1fcacebe7c5b08045-com.arinco.horas_hombre_mobile</android_app_id>
 	<Hardware>0f77c6ae59a1db75969fadef1937c151cb5a4c98db81735cb64cf3626109610d</Hardware>
-	<Signature>&#10;-----BEGIN SIGNATURE-----&#10;IEL071dkwvaZ7/crPkreq2C32LTdG7RW+hrnFPLjrz/DK6ac7ovS2fP+Z5LUNHHK&#10;36siwC//tl+VWAdXMSGsBrrxVb5u4u8jC6v6V1qOO8KLOqjLmJAaZ3LxVQlYhnT9&#10;dRBEWQ8H4QIsNxtNZgrb62PxBOvOfkHKBEr7Ypk6ZM9PxlV201Z2uFV8FkW0T03p&#10;d4MOG89Er2ZtaGlSR+bo81zF3iobsfxhsYn1fs+w8GTK2X3kP2t6PTRN4xqnP7Ac&#10;mMR4Wq5WSqqr9m7L46l7kNFGRYUzTeRZbXeeD611HWpxoV8eVGKeM/sXLmLbdIQQ&#10;apsXQI/mi2VQpW6ccR0P2g==&#10;-----END SIGNATURE-----&#10;</Signature>
+	<Signature>&#10;-----BEGIN SIGNATURE-----&#10;F68lv1mZL+jKBAUf/EhNhvvi5jr9Zni5MyzO+bhoVeLdD+FA3JV5wBioodybmq+4&#10;reJMccS3mlHYBihI4WNmbdy7Pg3AUCmoOpFfA1/KtKtjVkZHl7kdtodWDIYy5bXJ&#10;uhw+j4jCrApsdR/HF3VMj8fGVsrDLbed+jwWu/Od1Kb8M5KCxFYEVgeFsXg0Dafy&#10;a0i2w4WNZNm61/fKHPkksfwFjEoJRJeDZzqq/sw6pKfjy30k8766Ihjly05UHFZ3&#10;ymN+GkrF1r+/kBHpF90L0K6RUHiIXZ/NUlrIwaM/qPHBAd2W9oSVLWQ0zZOpPC+J&#10;PjlC0i+o94xjwQ0VYu4yWA==&#10;-----END SIGNATURE-----&#10;</Signature>
 </License>

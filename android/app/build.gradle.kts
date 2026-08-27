@@ -38,7 +38,7 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            // 3DiVi 3.26.1 lee la firma con GET_SIGNATURES (solo v1).
+            // 3DiVi 3.31 lee la firma con GET_SIGNATURES (solo v1).
             enableV1Signing = true
             enableV2Signing = true
         }
