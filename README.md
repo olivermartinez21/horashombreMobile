@@ -137,7 +137,8 @@ Conecte el dispositivo por USB (depuración USB activada). Use la IP LAN del equ
 flutter devices
 flutter run --release -d <deviceId> \
   --dart-define=APP_ENV=dev \
-  --dart-define=API_BASE_URL=http://<host>:5000/nova
+  --dart-define=API_BASE_URL=http://<host>:5000/nova \
+  --dart-define=KIOSK_ADMIN_PIN=<PIN_DE_6_DIGITOS>
 ```
 
 En Windows también están `scripts/run_dev.ps1` y `scripts/build_prod.ps1`.
@@ -147,10 +148,15 @@ En Windows también están `scripts/run_dev.ps1` y `scripts/build_prod.ps1`.
 ```bash
 flutter build apk --release \
   --dart-define=APP_ENV=prod \
-  --dart-define=API_BASE_URL=https://su-servidor/nova
+  --dart-define=API_BASE_URL=https://su-servidor/nova \
+  --dart-define=KIOSK_ADMIN_PIN=<PIN_DE_6_DIGITOS>
 ```
 
 APK: `build/app/outputs/flutter-apk/app-release.apk`.
+
+`KIOSK_ADMIN_PIN` es obligatorio para abrir Ajustes. No lo guarde en archivos
+versionados; indíquelo al compilar o mediante el prompt de la configuración de
+ejecución de Cursor.
 
 ## Flujo
 

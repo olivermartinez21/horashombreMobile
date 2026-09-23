@@ -2,22 +2,34 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Horas Hombre (dev)",
+      "name": "Horas Hombre (QA release)",
       "request": "launch",
       "type": "dart",
+      "flutterMode": "release",
       "toolArgs": [
-        "--dart-define=APP_ENV=dev",
-        "--dart-define=API_BASE_URL=http://192.168.100.20:5000/nova"
+        "--dart-define=APP_ENV=qa",
+        "--dart-define=API_BASE_URL=http://ec2-54-237-104-7.compute-1.amazonaws.com:8080/nova",
+        "--dart-define=KIOSK_ADMIN_PIN=${input:kioskAdminPin}"
       ]
     },
     {
-      "name": "Horas Hombre (dev - emulador Android)",
+      "name": "Horas Hombre (local release)",
       "request": "launch",
       "type": "dart",
+      "flutterMode": "release",
       "toolArgs": [
         "--dart-define=APP_ENV=dev",
-        "--dart-define=API_BASE_URL=http://10.0.2.2:5000/nova"
+        "--dart-define=API_BASE_URL=http://192.168.100.28:8080/nova",
+        "--dart-define=KIOSK_ADMIN_PIN=${input:kioskAdminPin}"
       ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "kioskAdminPin",
+      "type": "promptString",
+      "description": "PIN administrativo del kiosko (6 dígitos)",
+      "password": true
     }
   ]
 }

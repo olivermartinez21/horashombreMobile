@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:horas_hombre_mobile/config/app_config.dart';
 import 'package:horas_hombre_mobile/screens/home_screen.dart';
 import 'package:horas_hombre_mobile/services/api_service.dart';
+import 'package:horas_hombre_mobile/services/face_gallery_service.dart';
 import 'package:horas_hombre_mobile/services/face_match_service.dart';
 import 'package:horas_hombre_mobile/services/face_reference_repository.dart';
 import 'package:horas_hombre_mobile/services/face_sdk_service.dart';
@@ -41,7 +42,7 @@ Future<void> main() async {
   );
 }
 
-class HorasHombreApp extends StatelessWidget {
+class HorasHombreApp extends StatefulWidget {
   const HorasHombreApp({
     super.key,
     required this.settingsService,
@@ -54,13 +55,38 @@ class HorasHombreApp extends StatelessWidget {
   final String? faceSdkInitError;
 
   @override
+  State<HorasHombreApp> createState() => _HorasHombreAppState();
+}
+
+class _HorasHombreAppState extends State<HorasHombreApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      widget.faceSdkService.dispose();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<SettingsService>.value(
-          value: settingsService,
+          value: widget.settingsService,
         ),
-        Provider<FaceSdkService>.value(value: faceSdkService),
+        Provider<FaceSdkService>.value(value: widget.faceSdkService),
         Provider<ApiService>(
           create: (_) => ApiService(),
           dispose: (_, service) => service.dispose(),
@@ -70,6 +96,15 @@ class HorasHombreApp extends StatelessWidget {
         ),
         ProxyProvider<FaceSdkService, FaceMatchService>(
           update: (_, sdk, _) => DeviceFaceMatchService(sdk),
+        ),
+        ChangeNotifierProxyProvider2<ApiService, FaceSdkService,
+            FaceGalleryService>(
+          create: (context) => FaceGalleryService(
+            api: context.read<ApiService>(),
+            faceSdk: widget.faceSdkService,
+          ),
+          update: (_, api, faceSdk, previous) =>
+              previous ?? FaceGalleryService(api: api, faceSdk: faceSdk),
         ),
       ],
       child: MaterialApp(
@@ -82,11 +117,12 @@ class HorasHombreApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: faceSdkInitError != null && !faceSdkService.isInitialized
+        home:
+            widget.faceSdkInitError != null &&
+                !widget.faceSdkService.isInitialized
             ? FaceSdkErrorScreen(
-                message: faceSdkInitError!,
-                faceSdkService: faceSdkService,
-                settingsService: settingsService,
+                message: widget.faceSdkInitError!,
+                faceSdkService: widget.faceSdkService,
               )
             : const HomeScreen(),
       ),
@@ -99,12 +135,10 @@ class FaceSdkErrorScreen extends StatelessWidget {
     super.key,
     required this.message,
     required this.faceSdkService,
-    required this.settingsService,
   });
 
   final String message;
   final FaceSdkService faceSdkService;
-  final SettingsService settingsService;
 
   @override
   Widget build(BuildContext context) {
@@ -137,18 +171,15 @@ class FaceSdkErrorScreen extends StatelessWidget {
                   if (context.mounted) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute<void>(
-                        builder: (_) => HorasHombreApp(
-                          settingsService: settingsService,
-                          faceSdkService: faceSdkService,
-                        ),
+                        builder: (_) => const HomeScreen(),
                       ),
                     );
                   }
                 } on FaceSdkException catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.message)),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(e.message)));
                   }
                 }
               },

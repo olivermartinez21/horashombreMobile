@@ -9,6 +9,7 @@ import 'package:horas_hombre_mobile/screens/result_screen.dart';
 import 'package:horas_hombre_mobile/services/api_service.dart';
 import 'package:horas_hombre_mobile/services/face_reference_repository.dart';
 import 'package:horas_hombre_mobile/services/face_sdk_service.dart';
+import 'package:horas_hombre_mobile/services/settings_service.dart';
 import 'package:horas_hombre_mobile/widgets/employee_card.dart';
 import 'package:horas_hombre_mobile/widgets/loading_overlay.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -30,6 +31,7 @@ class FaceCaptureScreen extends StatefulWidget {
 
 class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   CameraController? _controller;
+  int _cameraEpoch = 0;
   bool _initializing = true;
   bool _processing = false;
   String? _statusMessage;
@@ -43,52 +45,71 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
   }
 
   Future<void> _initCamera() async {
+    final epoch = ++_cameraEpoch;
     var status = await Permission.camera.status;
+    if (epoch != _cameraEpoch || !mounted) return;
     if (!status.isGranted) {
       status = await Permission.camera.request();
     }
+    if (epoch != _cameraEpoch || !mounted) return;
     if (!status.isGranted) {
-      if (mounted) {
-        setState(() {
-          _permissionDenied = true;
-          _initializing = false;
-        });
-      }
+      setState(() {
+        _permissionDenied = true;
+        _initializing = false;
+      });
       return;
     }
 
-    try {
-      final cameras = await availableCameras();
-      final front = cameras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.front,
-        orElse: () => cameras.first,
-      );
-
-      final controller = CameraController(
-        front,
-        ResolutionPreset.medium,
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
-      );
-
-      await controller.initialize();
-
-      if (!mounted) {
-        await controller.dispose();
-        return;
+    Object? lastError;
+    for (var attempt = 0; attempt < 4; attempt++) {
+      if (epoch != _cameraEpoch || !mounted) return;
+      if (attempt > 0) {
+        await Future<void>.delayed(Duration(milliseconds: 300 * attempt));
+        if (epoch != _cameraEpoch || !mounted) return;
       }
 
+      CameraController? controller;
+      try {
+        final cameras = await availableCameras();
+        if (epoch != _cameraEpoch || !mounted) return;
+        final front = cameras.firstWhere(
+          (c) => c.lensDirection == CameraLensDirection.front,
+          orElse: () => cameras.first,
+        );
+
+        controller = CameraController(
+          front,
+          ResolutionPreset.medium,
+          enableAudio: false,
+          imageFormatGroup: ImageFormatGroup.jpeg,
+        );
+
+        await controller.initialize();
+
+        if (epoch != _cameraEpoch || !mounted) {
+          await controller.dispose();
+          return;
+        }
+
+        setState(() {
+          _controller = controller;
+          _initializing = false;
+          _error = null;
+        });
+        return;
+      } catch (e) {
+        lastError = e;
+        try {
+          await controller?.dispose();
+        } catch (_) {}
+      }
+    }
+
+    if (epoch == _cameraEpoch && mounted) {
       setState(() {
-        _controller = controller;
+        _error = 'No se pudo iniciar la cámara: $lastError';
         _initializing = false;
       });
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'No se pudo iniciar la cámara: $e';
-          _initializing = false;
-        });
-      }
     }
   }
 
@@ -116,8 +137,10 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       _statusMessage = 'Verificando prueba de vida…';
     });
 
+    String? capturedPath;
     try {
       final file = await controller.takePicture();
+      capturedPath = file.path;
       final capturedBytes = await File(file.path).readAsBytes();
 
       final stored = await faceRefRepo.resolveReferenceImage(widget.employee);
@@ -176,9 +199,24 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
         setState(() => _statusMessage = 'Guardando asistencia…');
       }
 
+      if (!mounted) return;
+      final settings = context.read<SettingsService>();
+      if (settings.locationId == null ||
+          settings.locationName == null ||
+          settings.locationName!.isEmpty) {
+        await _goToResult(
+          success: false,
+          title: 'Ubicación no configurada',
+          subtitle: 'Seleccione una ubicación en Ajustes antes de registrar.',
+        );
+        return;
+      }
+
       final record = AttendanceRecord(
         userId: widget.employee.userId,
         type: widget.attendanceType,
+        locationId: settings.locationId,
+        locationName: settings.locationName,
       );
       final message = await api.saveAttendance(record);
 
@@ -218,12 +256,42 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
         );
       }
     } finally {
+      await _deleteCapturedFile(capturedPath);
       if (mounted) {
         setState(() {
           _processing = false;
           _statusMessage = null;
         });
       }
+    }
+  }
+
+  Future<void> _deleteCapturedFile(String? path) async {
+    if (path == null || path.isEmpty) return;
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+      await _deleteStaleCapturesIn(file.parent);
+    } catch (_) {}
+  }
+
+  /// Limpia JPEGs temporales de `takePicture()` que hayan quedado de intentos previos.
+  Future<void> _deleteStaleCapturesIn(Directory dir) async {
+    if (!await dir.exists()) return;
+    await for (final entity in dir.list()) {
+      if (entity is! File) continue;
+      final name = entity.uri.pathSegments.last.toUpperCase();
+      final isCapture =
+          name.startsWith('CAP') &&
+          (name.endsWith('.JPG') ||
+              name.endsWith('.JPEG') ||
+              name.endsWith('.HEIF'));
+      if (!isCapture) continue;
+      try {
+        await entity.delete();
+      } catch (_) {}
     }
   }
 
@@ -246,6 +314,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
   @override
   void dispose() {
+    _cameraEpoch++;
     _controller?.dispose();
     super.dispose();
   }
@@ -256,39 +325,41 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       appBar: AppBar(
         title: Text('Verificación — ${widget.attendanceType.label}'),
       ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: EmployeeCard(
-                  fullName: widget.employee.fullName,
-                  departmentName: widget.employee.departmentName,
-                  photograph: widget.employee.photograph,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: EmployeeCard(
+                    fullName: widget.employee.fullName,
+                    departmentName: widget.employee.departmentName,
+                    photograph: widget.employee.photograph,
+                  ),
                 ),
-              ),
-              Expanded(child: _buildCameraArea()),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: FilledButton.icon(
-                    onPressed: _canCapture ? _captureAndProcess : null,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text(
-                      'Tomar foto y verificar',
-                      style: TextStyle(fontSize: 18),
+                Expanded(child: _buildCameraArea()),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: FilledButton.icon(
+                      onPressed: _canCapture ? _captureAndProcess : null,
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text(
+                        'Tomar foto y verificar',
+                        style: TextStyle(fontSize: 18),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          if (_processing && _statusMessage != null)
-            LoadingOverlay(message: _statusMessage!),
-        ],
+              ],
+            ),
+            if (_processing && _statusMessage != null)
+              LoadingOverlay(message: _statusMessage!),
+          ],
+        ),
       ),
     );
   }

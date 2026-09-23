@@ -16,23 +16,29 @@ class FaceSdkException implements Exception {
 }
 
 class LivenessResult {
-  const LivenessResult({
-    required this.isLive,
-    required this.livenessScore,
-  });
+  const LivenessResult({required this.isLive, required this.livenessScore});
 
   final bool isLive;
   final double livenessScore;
 }
 
 class VerifyResult {
-  const VerifyResult({
+  const VerifyResult({required this.isMatch, required this.faceMatchScore});
+
+  final bool isMatch;
+  final double faceMatchScore;
+}
+
+class IdentifyResult {
+  const IdentifyResult({
     required this.isMatch,
     required this.faceMatchScore,
+    this.numberUser,
   });
 
   final bool isMatch;
   final double faceMatchScore;
+  final int? numberUser;
 }
 
 /// Información de diagnóstico tras activar el SDK (validar licencia).
@@ -65,8 +71,21 @@ class FaceSdkService {
   ProcessingBlock? _livenessEstimator;
   ProcessingBlock? _faceTemplateExtractor;
   ProcessingBlock? _verificationModule;
+  ProcessingBlock? _matcherModule;
+  DynamicTemplateIndex? _identifyIndex;
 
   bool get isInitialized => _initialized;
+  bool get hasIdentifyIndex =>
+      _identifyIndex != null && (_identifyIndex!.size() > 0);
+  int get identifyIndexSize {
+    try {
+      return _identifyIndex?.size() ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  void dispose() => _disposeNative();
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -94,6 +113,11 @@ class FaceSdkService {
       });
       _verificationModule = service.createProcessingBlock({
         'unit_type': 'VERIFICATION_MODULE',
+        'modification': _templateModification,
+        'version': _templateVersion,
+      });
+      _matcherModule = service.createProcessingBlock({
+        'unit_type': 'MATCHER_MODULE',
         'modification': _templateModification,
         'version': _templateVersion,
       });
@@ -154,6 +178,129 @@ class FaceSdkService {
       throw lastFailure;
     }
     throw FaceSdkException('No se pudo validar liveness: $lastFailure');
+  }
+
+  /// Extrae y serializa un template facial (para cache local del índice 1:N).
+  Uint8List? extractTemplateBytes(Uint8List jpegBytes) {
+    _ensureInitialized();
+    if (jpegBytes.isEmpty) return null;
+    try {
+      final template = _templateWithPreparedAndRawFallback(
+        rawBytes: jpegBytes,
+        noFaceMessage: 'Sin rostro en foto de referencia.',
+      );
+      try {
+        return template.save();
+      } finally {
+        template.dispose();
+      }
+    } catch (e, st) {
+      log('No se pudo extraer template: $e\n$st');
+      return null;
+    }
+  }
+
+  /// Reconstruye el índice 1:N en memoria a partir de templates serializados.
+  /// [entries]: uuid = numberUser como String.
+  void rebuildIdentifyIndex(List<({String uuid, Uint8List templateBytes})> entries) {
+    _ensureInitialized();
+    _disposeIdentifyIndex();
+    if (entries.isEmpty) {
+      log('Índice 1:N vacío');
+      return;
+    }
+
+    final service = _facerecService!;
+    final templates = <ContextTemplate>[];
+    final uuids = <String>[];
+    try {
+      for (final entry in entries) {
+        if (entry.templateBytes.isEmpty || entry.uuid.isEmpty) continue;
+        try {
+          templates.add(service.loadContextTemplate(entry.templateBytes));
+          uuids.add(entry.uuid);
+        } catch (e) {
+          log('Template inválido uuid=${entry.uuid}: $e');
+        }
+      }
+      if (templates.isEmpty) return;
+
+      _identifyIndex = service.createDynamicTemplateIndex({
+        'capacity': templates.length + 32,
+        'modification': _templateModification,
+        'version': _templateVersion,
+      });
+      _identifyIndex!.addContextTemplates(templates, uuids);
+      log('Índice 1:N listo: ${_identifyIndex!.size()} templates');
+    } catch (e, st) {
+      log('Error al reconstruir índice 1:N: $e\n$st');
+      _disposeIdentifyIndex();
+      throw FaceSdkException('No se pudo construir el índice facial 1:N: $e');
+    } finally {
+      for (final t in templates) {
+        _disposeSafely('context template', t.dispose);
+      }
+    }
+  }
+
+  /// Búsqueda 1:N: captura contra el índice local (MATCHER_MODULE, knn=1).
+  Future<IdentifyResult> identifyFace(Uint8List capturedJpeg) async {
+    _ensureInitialized();
+    if (capturedJpeg.isEmpty) {
+      throw FaceSdkException('La foto capturada está vacía.');
+    }
+    final index = _identifyIndex;
+    if (index == null || index.size() == 0) {
+      throw FaceSdkException(
+        'No hay galería facial sincronizada. Sincronice empleados con foto.',
+      );
+    }
+
+    Context? matcherData;
+    ContextTemplate? queryTemplate;
+    try {
+      queryTemplate = _templateWithPreparedAndRawFallback(
+        rawBytes: capturedJpeg,
+        noFaceMessage:
+            'No detectamos un rostro en la foto capturada. Usa buena luz y mira de frente.',
+      );
+
+      matcherData = _facerecService!.createContext({
+        'knn': 1,
+      });
+      matcherData['template_index'] = index;
+      matcherData['queries'] = queryTemplate;
+      _matcherModule!.process(matcherData);
+
+      final results = matcherData['results'];
+      if (results.len() == 0) {
+        return const IdentifyResult(isMatch: false, faceMatchScore: 0);
+      }
+
+      final top = results[0];
+      final score = _toDouble(top['score'].get_value());
+      final uuid = top['uuid'].get_value()?.toString();
+      final numberUser = int.tryParse(uuid ?? '');
+      log('3DiVi identify score=$score uuid=$uuid');
+
+      final isMatch =
+          score >= BiometricConfig.identifyThreshold && numberUser != null;
+      return IdentifyResult(
+        isMatch: isMatch,
+        faceMatchScore: score,
+        numberUser: isMatch ? numberUser : null,
+      );
+    } on FaceSdkException {
+      rethrow;
+    } catch (e, st) {
+      log('Error en identificación 1:N: $e\n$st');
+      throw FaceSdkException(
+        'No pudimos completar la identificación (${e.runtimeType}): $e',
+      );
+    } finally {
+      matcherData?.dispose();
+      queryTemplate?.dispose();
+    }
   }
 
   Future<VerifyResult> verifyFace({
@@ -262,15 +409,15 @@ class FaceSdkService {
       final isLive = _isRealLiveness(value, info);
       return LivenessResult(
         isLive: isLive,
-        livenessScore: isLive ? (confidence > 0 ? confidence : 1.0) : confidence,
+        livenessScore: isLive
+            ? (confidence > 0 ? confidence : 1.0)
+            : confidence,
       );
     } on FaceSdkException {
       rethrow;
     } catch (e, st) {
       log('Error en liveness: $e\n$st');
-      throw FaceSdkException(
-        'No se pudo validar liveness (anti-spoofing): $e',
-      );
+      throw FaceSdkException('No se pudo validar liveness (anti-spoofing): $e');
     } finally {
       ctx?.dispose();
     }
@@ -373,23 +520,36 @@ class FaceSdkService {
     return 0;
   }
 
+  void _disposeIdentifyIndex() {
+    _disposeSafely('identify index', _identifyIndex?.dispose);
+    _identifyIndex = null;
+  }
+
   void _disposeNative() {
-    try {
-      _faceDetector?.dispose();
-      _faceFitter?.dispose();
-      _livenessEstimator?.dispose();
-      _faceTemplateExtractor?.dispose();
-      _verificationModule?.dispose();
-      _facerecService?.dispose();
-    } catch (e) {
-      log('Error al liberar 3DiVi Face SDK: $e');
-    }
+    _disposeIdentifyIndex();
+    _disposeSafely('face detector', _faceDetector?.dispose);
+    _disposeSafely('face fitter', _faceFitter?.dispose);
+    _disposeSafely('liveness estimator', _livenessEstimator?.dispose);
+    _disposeSafely('face template extractor', _faceTemplateExtractor?.dispose);
+    _disposeSafely('verification module', _verificationModule?.dispose);
+    _disposeSafely('matcher module', _matcherModule?.dispose);
+    _disposeSafely('facerec service', _facerecService?.dispose);
     _faceDetector = null;
     _faceFitter = null;
     _livenessEstimator = null;
     _faceTemplateExtractor = null;
     _verificationModule = null;
+    _matcherModule = null;
     _facerecService = null;
     _initialized = false;
+  }
+
+  void _disposeSafely(String name, void Function()? dispose) {
+    if (dispose == null) return;
+    try {
+      dispose();
+    } catch (e) {
+      log('Error al liberar $name de 3DiVi Face SDK: $e');
+    }
   }
 }

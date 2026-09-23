@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:horas_hombre_mobile/models/qr_payload.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -17,6 +19,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
   );
 
   bool _handled = false;
+  bool _closing = false;
   bool _permissionDenied = false;
   bool _checkingPermission = true;
 
@@ -24,6 +27,29 @@ class _QrScanScreenState extends State<QrScanScreen> {
   void initState() {
     super.initState();
     _ensureCameraPermission();
+  }
+
+  /// Suelta CameraX antes de volver. Si no, el `unbindAll` del escáner
+  /// llega tarde y deja en negro (o congelada) la cámara de la foto.
+  Future<void> _close([int? numberUser]) async {
+    if (_handled) return;
+    _handled = true;
+
+    try {
+      await _controller.stop();
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() => _closing = true);
+    }
+    await WidgetsBinding.instance.endOfFrame;
+
+    try {
+      await _controller.dispose();
+    } catch (_) {}
+
+    if (!mounted) return;
+    Navigator.of(context).pop(numberUser);
   }
 
   Future<void> _ensureCameraPermission() async {
@@ -57,40 +83,48 @@ class _QrScanScreenState extends State<QrScanScreen> {
       return;
     }
 
-    _handled = true;
-    Navigator.of(context).pop(payload.numberUser);
+    unawaited(_close(payload.numberUser));
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (!_handled) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Escanear QR'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || _handled) return;
+        unawaited(_close());
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Escanear QR'),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => unawaited(_close()),
+          ),
         ),
+        body: _checkingPermission || _closing
+            ? const Center(child: CircularProgressIndicator())
+            : _permissionDenied
+                ? SafeArea(child: _buildPermissionDenied())
+                : Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      MobileScanner(
+                        controller: _controller,
+                        onDetect: _onDetect,
+                      ),
+                      _buildOverlay(),
+                    ],
+                  ),
       ),
-      body: _checkingPermission
-          ? const Center(child: CircularProgressIndicator())
-          : _permissionDenied
-              ? _buildPermissionDenied()
-              : Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    MobileScanner(
-                      controller: _controller,
-                      onDetect: _onDetect,
-                    ),
-                    _buildOverlay(),
-                  ],
-                ),
     );
   }
 
@@ -121,10 +155,10 @@ class _QrScanScreenState extends State<QrScanScreen> {
   }
 
   Widget _buildOverlay() {
-    return Column(
-      children: [
-        const Spacer(),
-        Container(
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SafeArea(
+        child: Container(
           color: Colors.black54,
           padding: const EdgeInsets.all(20),
           width: double.infinity,
@@ -134,7 +168,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
             style: TextStyle(color: Colors.white, fontSize: 18),
           ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -23,6 +23,7 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "getNativeLibDir" -> result.success(getNativeLibDir())
+                    "moveTaskToBack" -> result.success(moveTaskToBack(true))
                     else -> result.notImplemented()
                 }
             }
