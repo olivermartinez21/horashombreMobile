@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:horas_hombre_mobile/config/biometric_config.dart';
+import 'package:horas_hombre_mobile/config/device_form_factor.dart';
 import 'package:horas_hombre_mobile/models/attendance.dart';
 import 'package:horas_hombre_mobile/models/employee.dart';
 import 'package:horas_hombre_mobile/screens/result_screen.dart';
 import 'package:horas_hombre_mobile/services/api_service.dart';
+import 'package:horas_hombre_mobile/services/attendance_sync_service.dart';
 import 'package:horas_hombre_mobile/services/face_reference_repository.dart';
 import 'package:horas_hombre_mobile/services/face_sdk_service.dart';
 import 'package:horas_hombre_mobile/services/settings_service.dart';
@@ -79,7 +81,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
         controller = CameraController(
           front,
-          ResolutionPreset.medium,
+          captureResolutionPreset(),
           enableAudio: false,
           imageFormatGroup: ImageFormatGroup.jpeg,
         );
@@ -130,7 +132,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
     }
 
     final faceRefRepo = context.read<FaceReferenceRepository>();
-    final api = context.read<ApiService>();
+    final attendanceSync = context.read<AttendanceSyncService>();
 
     setState(() {
       _processing = true;
@@ -217,18 +219,19 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
         type: widget.attendanceType,
         locationId: settings.locationId,
         locationName: settings.locationName,
+        employeeName: widget.employee.fullName,
       );
-      final message = await api.saveAttendance(record);
+      final delivery = await attendanceSync.capture(record);
 
       if (mounted) {
         await _goToResult(
-          success: true,
-          title: '¡Registro exitoso!',
+          success: delivery.success,
+          title: delivery.title,
           subtitle:
               '${widget.employee.fullName}\n'
               'Liveness: ${livenessOnly.livenessScore.toStringAsFixed(3)}\n'
               'Coincidencia: ${verify.faceMatchScore.toStringAsFixed(3)}\n'
-              '$message',
+              '${delivery.message}',
         );
       }
     } on FaceSdkException catch (e) {

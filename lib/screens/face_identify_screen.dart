@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:horas_hombre_mobile/config/biometric_config.dart';
+import 'package:horas_hombre_mobile/config/device_form_factor.dart';
 import 'package:horas_hombre_mobile/models/attendance.dart';
 import 'package:horas_hombre_mobile/models/employee.dart';
 import 'package:horas_hombre_mobile/screens/employee_number_screen.dart';
@@ -10,6 +11,7 @@ import 'package:horas_hombre_mobile/screens/face_capture_screen.dart';
 import 'package:horas_hombre_mobile/screens/qr_scan_screen.dart';
 import 'package:horas_hombre_mobile/screens/result_screen.dart';
 import 'package:horas_hombre_mobile/services/api_service.dart';
+import 'package:horas_hombre_mobile/services/attendance_sync_service.dart';
 import 'package:horas_hombre_mobile/services/face_gallery_service.dart';
 import 'package:horas_hombre_mobile/services/face_reference_repository.dart';
 import 'package:horas_hombre_mobile/services/face_sdk_service.dart';
@@ -112,7 +114,7 @@ class _FaceIdentifyScreenState extends State<FaceIdentifyScreen> {
 
       controller = CameraController(
         front,
-        ResolutionPreset.medium,
+        captureResolutionPreset(),
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -150,6 +152,8 @@ class _FaceIdentifyScreenState extends State<FaceIdentifyScreen> {
     final faceSdk = context.read<FaceSdkService>();
     final gallery = context.read<FaceGalleryService>();
     final api = context.read<ApiService>();
+    final attendanceSync = context.read<AttendanceSyncService>();
+    final settings = context.read<SettingsService>();
 
     if (!faceSdk.isInitialized) {
       await _goToResult(
@@ -250,7 +254,6 @@ class _FaceIdentifyScreenState extends State<FaceIdentifyScreen> {
         setState(() => _statusMessage = 'Guardando asistencia…');
       }
 
-      final settings = context.read<SettingsService>();
       if (settings.locationId == null ||
           settings.locationName == null ||
           settings.locationName!.isEmpty) {
@@ -262,24 +265,25 @@ class _FaceIdentifyScreenState extends State<FaceIdentifyScreen> {
         return;
       }
 
-      final message = await api.saveAttendance(
+      final delivery = await attendanceSync.capture(
         AttendanceRecord(
           userId: employee.userId,
           type: widget.attendanceType,
           locationId: settings.locationId,
           locationName: settings.locationName,
+          employeeName: employee.fullName,
         ),
       );
 
       if (mounted) {
         await _goToResult(
-          success: true,
-          title: '¡Registro exitoso!',
+          success: delivery.success,
+          title: delivery.title,
           subtitle:
               '${employee.fullName}\n'
               'Liveness: ${liveness.livenessScore.toStringAsFixed(3)}\n'
               'Identificación: ${identify.faceMatchScore.toStringAsFixed(3)}\n'
-              '$message',
+              '${delivery.message}',
         );
       }
     } on FaceSdkException catch (e) {

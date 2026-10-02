@@ -16,6 +16,18 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+class AttendanceSyncItemResult {
+  const AttendanceSyncItemResult({
+    required this.offlineEventId,
+    required this.status,
+    required this.message,
+  });
+
+  final String? offlineEventId;
+  final String status;
+  final String message;
+}
+
 class ApiService {
   ApiService({String? baseUrl, http.Client? client})
       : _baseUrl = _normalizeBaseUrl(baseUrl ?? AppConfig.baseUrl),
@@ -131,6 +143,59 @@ class ApiService {
       message ?? 'No se pudo guardar la asistencia',
       statusCode: response.statusCode,
     );
+  }
+
+  /// Envía marcas guardadas en el dispositivo. El servidor responde por evento.
+  Future<List<AttendanceSyncItemResult>> syncAttendance(
+    List<Map<String, dynamic>> events, {
+    required String deviceId,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/attendance/sync');
+    final response = await _client
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'deviceId': deviceId,
+            'events': events,
+          }),
+        )
+        .timeout(const Duration(seconds: 60));
+
+    Map<String, dynamic>? body;
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        body = decoded;
+      } else if (decoded is Map) {
+        body = Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {
+      body = null;
+    }
+
+    if (response.statusCode != 200 || body == null) {
+      throw ApiException(
+        'No se pudo sincronizar la asistencia (${response.statusCode})',
+        statusCode: response.statusCode,
+      );
+    }
+
+    final rawResults = body['results'];
+    if (rawResults is! List) {
+      throw ApiException('Respuesta de sincronización inválida');
+    }
+
+    return rawResults.map((item) {
+      final map = item is Map<String, dynamic>
+          ? item
+          : Map<String, dynamic>.from(item as Map);
+      return AttendanceSyncItemResult(
+        offlineEventId: map['offlineEventId'] as String?,
+        status: map['status'] as String? ?? '',
+        message: map['message'] as String? ?? '',
+      );
+    }).toList();
   }
 
   void dispose() => _client.close();

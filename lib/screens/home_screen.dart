@@ -4,6 +4,7 @@ import 'package:horas_hombre_mobile/models/attendance.dart';
 import 'package:horas_hombre_mobile/screens/face_identify_screen.dart';
 import 'package:horas_hombre_mobile/screens/result_screen.dart';
 import 'package:horas_hombre_mobile/screens/settings_screen.dart';
+import 'package:horas_hombre_mobile/services/attendance_sync_service.dart';
 import 'package:horas_hombre_mobile/services/face_gallery_service.dart';
 import 'package:horas_hombre_mobile/services/face_sdk_service.dart';
 import 'package:horas_hombre_mobile/services/settings_service.dart';
@@ -24,7 +25,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _warmGallery());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _warmGallery();
+      context.read<AttendanceSyncService>().start();
+    });
   }
 
   Future<void> _warmGallery() async {
@@ -119,15 +123,24 @@ class _HomeScreenState extends State<HomeScreen> {
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: configured && type != null
-                ? _KioskReadyView(
-                    type: type,
-                    locationName: settings.locationName ?? '',
-                    galleryCount: gallery.cachedEmployeeCount,
-                    gallerySyncing: gallery.isSyncing,
-                    onStart: () => _startFlow(context),
-                  )
-                : _KioskSetupView(onOpenSettings: () => _openSettings(context)),
+            child: Column(
+              children: [
+                const _AttendanceSyncBanner(),
+                Expanded(
+                  child: configured && type != null
+                      ? _KioskReadyView(
+                          type: type,
+                          locationName: settings.locationName ?? '',
+                          galleryCount: gallery.cachedEmployeeCount,
+                          gallerySyncing: gallery.isSyncing,
+                          onStart: () => _startFlow(context),
+                        )
+                      : _KioskSetupView(
+                          onOpenSettings: () => _openSettings(context),
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -187,6 +200,56 @@ class _KioskReadyView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AttendanceSyncBanner extends StatelessWidget {
+  const _AttendanceSyncBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final sync = context.watch<AttendanceSyncService>();
+    if (sync.pendingCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    final conflicts = sync.conflictCount;
+    final waiting = sync.pendingCount - conflicts;
+    final lines = <String>[
+      if (waiting > 0)
+        '$waiting marca${waiting == 1 ? '' : 's'} guardada${waiting == 1 ? '' : 's'} en el dispositivo. Se enviará${waiting == 1 ? '' : 'n'} al reconectar.',
+      if (conflicts > 0)
+        '$conflicts marca${conflicts == 1 ? '' : 's'} en conflicto con un registro ya existente. Revise Ajustes.',
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: conflicts > 0 ? Colors.orange.shade50 : Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                conflicts > 0 ? Icons.rule : Icons.cloud_off,
+                color: conflicts > 0
+                    ? Colors.orange.shade800
+                    : Colors.blue.shade800,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  lines.join('\n'),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

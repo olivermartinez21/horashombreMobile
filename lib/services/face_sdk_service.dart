@@ -125,9 +125,15 @@ class FaceSdkService {
     } catch (e, st) {
       log('Error al inicializar 3DiVi Face SDK: $e\n$st');
       _disposeNative();
+      final detail = e.toString();
+      final seatTaken = detail.contains('exceeds the number of available');
       throw FaceSdkException(
-        'No se pudo iniciar 3DiVi Face SDK. Revisa assets/license/3divi_face_sdk.lic '
-        'y que coincida con el applicationId de release. Detalle: $e',
+        seatTaken
+            ? 'La licencia de 3DiVi ya tiene un detector facial en uso '
+                '(solo permite uno). Cierre la app por completo y ábrala de nuevo. '
+                'Detalle: $detail'
+            : 'No se pudo iniciar 3DiVi Face SDK. Revisa assets/license/3divi_face_sdk.lic '
+                'y que coincida con el applicationId de release. Detalle: $detail',
       );
     }
   }

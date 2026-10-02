@@ -27,6 +27,9 @@ class AttendanceRecord {
     required this.type,
     this.locationId,
     this.locationName,
+    this.employeeName,
+    this.offlineEventId,
+    this.deviceId,
     DateTime? dateTime,
   }) : dateTime = dateTime ?? DateTime.now();
 
@@ -34,7 +37,26 @@ class AttendanceRecord {
   final AttendanceType type;
   final int? locationId;
   final String? locationName;
+  final String? employeeName;
+  final String? offlineEventId;
+  final String? deviceId;
   final DateTime dateTime;
+
+  AttendanceRecord copyWith({
+    String? offlineEventId,
+    String? deviceId,
+  }) {
+    return AttendanceRecord(
+      userId: userId,
+      type: type,
+      locationId: locationId,
+      locationName: locationName,
+      employeeName: employeeName,
+      offlineEventId: offlineEventId ?? this.offlineEventId,
+      deviceId: deviceId ?? this.deviceId,
+      dateTime: dateTime,
+    );
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -46,6 +68,8 @@ class AttendanceRecord {
       if (locationId != null) 'locationId': locationId,
       if (locationName != null && locationName!.isNotEmpty)
         'locationName': locationName,
+      if (offlineEventId != null) 'offlineEventId': offlineEventId,
+      if (deviceId != null) 'deviceId': deviceId,
     };
   }
 }

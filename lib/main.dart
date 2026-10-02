@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:horas_hombre_mobile/config/app_config.dart';
+import 'package:horas_hombre_mobile/config/device_form_factor.dart';
 import 'package:horas_hombre_mobile/screens/home_screen.dart';
 import 'package:horas_hombre_mobile/services/api_service.dart';
+import 'package:horas_hombre_mobile/services/attendance_sync_service.dart';
 import 'package:horas_hombre_mobile/services/face_gallery_service.dart';
 import 'package:horas_hombre_mobile/services/face_match_service.dart';
 import 'package:horas_hombre_mobile/services/face_reference_repository.dart';
@@ -13,10 +14,7 @@ import 'package:provider/provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  await applyKioskOrientations();
 
   final settingsService = SettingsService();
   await settingsService.load();
@@ -90,6 +88,11 @@ class _HorasHombreAppState extends State<HorasHombreApp>
         Provider<ApiService>(
           create: (_) => ApiService(),
           dispose: (_, service) => service.dispose(),
+        ),
+        ChangeNotifierProvider<AttendanceSyncService>(
+          create: (context) => AttendanceSyncService(
+            api: context.read<ApiService>(),
+          ),
         ),
         Provider<FaceReferenceRepository>(
           create: (_) => FaceReferenceRepository(),

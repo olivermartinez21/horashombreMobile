@@ -5,6 +5,7 @@ import 'package:horas_hombre_mobile/models/attendance.dart';
 import 'package:horas_hombre_mobile/models/location.dart';
 import 'package:horas_hombre_mobile/screens/biometric_test_screen.dart';
 import 'package:horas_hombre_mobile/services/api_service.dart';
+import 'package:horas_hombre_mobile/services/attendance_sync_service.dart';
 import 'package:horas_hombre_mobile/services/face_gallery_service.dart';
 import 'package:horas_hombre_mobile/services/face_sdk_service.dart';
 import 'package:horas_hombre_mobile/services/settings_service.dart';
@@ -331,6 +332,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           const SizedBox(height: 16),
+          const _AttendanceQueueCard(),
+          const SizedBox(height: 16),
           Card(
             child: ListTile(
               leading: const Icon(Icons.biotech),
@@ -354,6 +357,121 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AttendanceQueueCard extends StatelessWidget {
+  const _AttendanceQueueCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final sync = context.watch<AttendanceSyncService>();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Asistencia sin conexión',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              sync.pendingCount == 0
+                  ? 'No hay marcas pendientes.'
+                  : '${sync.pendingCount} marca${sync.pendingCount == 1 ? '' : 's'} en el dispositivo'
+                      '${sync.conflictCount == 0 ? '' : ' · ${sync.conflictCount} en conflicto'}.',
+            ),
+            if (sync.lastSyncNotice != null) ...[
+              const SizedBox(height: 8),
+              Text(sync.lastSyncNotice!),
+            ],
+            if (sync.lastError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  sync.lastError!,
+                  style: TextStyle(color: Colors.red.shade700),
+                ),
+              ),
+            const SizedBox(height: 8),
+            for (final item in sync.items)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('${item.displayName} · ${item.type.label}'),
+                subtitle: Text(
+                  '${item.attendanceDate} ${item.attendanceTime}'
+                  '${item.isConflict ? '\n${item.serverMessage ?? 'En conflicto con un registro existente'}' : ''}',
+                ),
+                trailing: IconButton(
+                  tooltip: 'Descartar marca local',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () async {
+                    final discard = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Descartar marca'),
+                        content: Text(
+                          'Se eliminará del kiosko la ${item.type.label.toLowerCase()} de ${item.displayName} '
+                          '(${item.attendanceDate} ${item.attendanceTime}). '
+                          'No se enviará al servidor.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancelar'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Descartar'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (discard == true) {
+                      await sync.discard(item.offlineEventId);
+                    }
+                  },
+                ),
+              ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: sync.isSyncing
+                    ? null
+                    : () async {
+                        await sync.flush();
+                        if (!context.mounted) return;
+                        final notice = sync.lastSyncNotice;
+                        final error = sync.lastError;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              error ??
+                                  notice ??
+                                  (sync.pendingCount == 0
+                                      ? 'No hay marcas pendientes'
+                                      : 'Sin conexión. Las marcas siguen en el dispositivo.'),
+                            ),
+                          ),
+                        );
+                      },
+                icon: sync.isSyncing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.cloud_upload),
+                label: Text(sync.isSyncing ? 'Sincronizando…' : 'Sincronizar ahora'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
