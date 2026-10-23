@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <License>
 	<name>3DiVi Face SDK License</name>
-	<cc>License#66540 - #2 Face SDK ESL Android 1-month, axel.vera@arinco.io</cc>
+	<cc>License#66540 - #2 Face SDK ESL Android 12-month, axel.vera@arinco.io</cc>
 	<version>3.0.1.2</version>
 	<max_sdk_version>3.31</max_sdk_version>
-	<valid>2026-Sep-24</valid>
+	<valid>2027-Aug-20</valid>
 	<matcher6>1</matcher6>
 	<matcher6v2>1</matcher6v2>
 	<matcher6v3>1</matcher6v3>
@@ -141,5 +141,5 @@
 	<Reg>0</Reg>
 	<android_app_id>d75779502ba49bc66c071480f206695b9b0457f2f148b0a1fcacebe7c5b08045-com.arinco.horas_hombre_mobile</android_app_id>
 	<Hardware>0f77c6ae59a1db75969fadef1937c151cb5a4c98db81735cb64cf3626109610d</Hardware>
-	<Signature>&#10;-----BEGIN SIGNATURE-----&#10;F68lv1mZL+jKBAUf/EhNhvvi5jr9Zni5MyzO+bhoVeLdD+FA3JV5wBioodybmq+4&#10;reJMccS3mlHYBihI4WNmbdy7Pg3AUCmoOpFfA1/KtKtjVkZHl7kdtodWDIYy5bXJ&#10;uhw+j4jCrApsdR/HF3VMj8fGVsrDLbed+jwWu/Od1Kb8M5KCxFYEVgeFsXg0Dafy&#10;a0i2w4WNZNm61/fKHPkksfwFjEoJRJeDZzqq/sw6pKfjy30k8766Ihjly05UHFZ3&#10;ymN+GkrF1r+/kBHpF90L0K6RUHiIXZ/NUlrIwaM/qPHBAd2W9oSVLWQ0zZOpPC+J&#10;PjlC0i+o94xjwQ0VYu4yWA==&#10;-----END SIGNATURE-----&#10;</Signature>
+	<Signature>&#10;-----BEGIN SIGNATURE-----&#10;HdiFaPfaPZQJXPLB2w095ifYghCQluhTfI9tbC1vlGCdLUvMLs5611BoWQ2286HF&#10;/4+G600TvbYMxfNRk8gkrpGrPlWeBjUF429JSSA0xJMJYl2Ov4HRVDaME8uE7s/c&#10;wORnA5nAumvArhdf9uFc1vll2WNCs8NnJVLF5CUzL+ldr1Gs2Uv6peb0adJ+RUfE&#10;fHT6Q7U1GeLxmjQhbgekfJvkiPI8yeUHZA3n9v2cc4+v3csEKyqul2qalbNd345n&#10;gJID3EIDCUg+tiJWXtn5YH64sKNw3LzKDSPuISgr7fOP7QgdrlcT+QVwOsPA1Y6w&#10;DoTIPPl8Ka9lfdBmoUE0iw==&#10;-----END SIGNATURE-----&#10;</Signature>
 </License>
