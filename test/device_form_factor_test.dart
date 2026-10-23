@@ -4,16 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:horas_hombre_mobile/config/device_form_factor.dart';
 
 void main() {
-  test('teléfono queda en vertical y tableta puede girar', () {
+  test('teléfono y tableta pueden girar', () {
     expect(
-      kioskOrientations(tablet: false),
-      [
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-      ],
-    );
-    expect(
-      kioskOrientations(tablet: true),
+      kioskOrientations(),
       [
         DeviceOrientation.portraitUp,
         DeviceOrientation.landscapeLeft,

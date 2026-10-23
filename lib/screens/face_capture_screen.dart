@@ -12,6 +12,7 @@ import 'package:horas_hombre_mobile/services/attendance_sync_service.dart';
 import 'package:horas_hombre_mobile/services/face_reference_repository.dart';
 import 'package:horas_hombre_mobile/services/face_sdk_service.dart';
 import 'package:horas_hombre_mobile/services/settings_service.dart';
+import 'package:horas_hombre_mobile/widgets/adaptive_capture_body.dart';
 import 'package:horas_hombre_mobile/widgets/employee_card.dart';
 import 'package:horas_hombre_mobile/widgets/loading_overlay.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -331,33 +332,42 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: EmployeeCard(
-                    fullName: widget.employee.fullName,
-                    departmentName: widget.employee.departmentName,
-                    photograph: widget.employee.photograph,
-                  ),
+            AdaptiveCaptureBody(
+              banner: Padding(
+                padding: const EdgeInsets.all(12),
+                child: EmployeeCard(
+                  fullName: widget.employee.fullName,
+                  departmentName: widget.employee.departmentName,
+                  photograph: widget.employee.photograph,
                 ),
-                Expanded(child: _buildCameraArea()),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: FilledButton.icon(
-                      onPressed: _canCapture ? _captureAndProcess : null,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text(
-                        'Tomar foto y verificar',
-                        style: TextStyle(fontSize: 18),
-                      ),
+              ),
+              preview: _buildCameraArea(),
+              controls: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(56),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
                     ),
                   ),
+                  onPressed: _canCapture ? _captureAndProcess : null,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.camera_alt),
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Tomar foto y verificar',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
             if (_processing && _statusMessage != null)
               LoadingOverlay(message: _statusMessage!),
@@ -394,13 +404,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       return _messagePanel('Cámara no disponible');
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: CameraPreview(controller),
-      ),
-    );
+    return CameraPreviewFrame(controller: controller);
   }
 
   Widget _messagePanel(String text, {Widget? action}) {

@@ -16,6 +16,7 @@ import 'package:horas_hombre_mobile/services/face_gallery_service.dart';
 import 'package:horas_hombre_mobile/services/face_reference_repository.dart';
 import 'package:horas_hombre_mobile/services/face_sdk_service.dart';
 import 'package:horas_hombre_mobile/services/settings_service.dart';
+import 'package:horas_hombre_mobile/widgets/adaptive_capture_body.dart';
 import 'package:horas_hombre_mobile/widgets/loading_overlay.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -457,82 +458,20 @@ class _FaceIdentifyScreenState extends State<FaceIdentifyScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: Text(
-                    gallery.isReady
-                        ? 'Mire a la cámara y pulse identificar '
-                            '(${gallery.cachedEmployeeCount} rostros en galería)'
-                        : 'Galería no lista: use QR o número, o sincronice fotos.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
+            AdaptiveCaptureBody(
+              banner: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Text(
+                  gallery.isReady
+                      ? 'Mire a la cámara y pulse identificar '
+                          '(${gallery.cachedEmployeeCount} rostros en galería)'
+                      : 'Galería no lista: use QR o número, o sincronice fotos.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                Expanded(child: _buildCameraArea()),
-                if (_showFallback) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'Otras formas de identificarse',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _processing || _handoff ? null : _openQrFallback,
-                            icon: const Icon(Icons.qr_code_scanner),
-                            label: const Text('QR'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _processing || _handoff ? null : _openManualFallback,
-                            icon: const Icon(Icons.dialpad),
-                            label: const Text('Número'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: FilledButton.icon(
-                          onPressed: _canCapture ? _captureAndIdentify : null,
-                          icon: const Icon(Icons.face),
-                          label: const Text(
-                            'Tomar foto e identificar',
-                            style: TextStyle(fontSize: 18),
-                          ),
-                        ),
-                      ),
-                      if (!_showFallback) ...[
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: _processing || _handoff
-                              ? null
-                              : () => setState(() => _showFallback = true),
-                          child: const Text('Usar QR o número de empleado'),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
+              ),
+              preview: _buildCameraArea(),
+              controls: _buildControls(),
             ),
             if (_processing && _statusMessage != null)
               LoadingOverlay(message: _statusMessage!),
@@ -547,6 +486,69 @@ class _FaceIdentifyScreenState extends State<FaceIdentifyScreen> {
       !_initializing &&
       _controller != null &&
       _controller!.value.isInitialized;
+
+  Widget _buildControls() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_showFallback) ...[
+            Text(
+              'Otras formas de identificarse',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _processing || _handoff ? null : _openQrFallback,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('QR'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _processing || _handoff ? null : _openManualFallback,
+              icon: const Icon(Icons.dialpad),
+              label: const Text('Número'),
+            ),
+            const SizedBox(height: 8),
+          ],
+          FilledButton(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
+            onPressed: _canCapture ? _captureAndIdentify : null,
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.face),
+                SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Tomar foto e identificar',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!_showFallback) ...[
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: _processing || _handoff
+                  ? null
+                  : () => setState(() => _showFallback = true),
+              child: const Text(
+                'Usar QR o número de empleado',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
   Widget _buildCameraArea() {
     if (_permissionDenied) {
@@ -569,13 +571,7 @@ class _FaceIdentifyScreenState extends State<FaceIdentifyScreen> {
       return _messagePanel('Cámara no disponible');
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: CameraPreview(controller),
-      ),
-    );
+    return CameraPreviewFrame(controller: controller);
   }
 
   Widget _messagePanel(String text, {Widget? action}) {

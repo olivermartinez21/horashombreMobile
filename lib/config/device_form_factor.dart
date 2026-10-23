@@ -25,42 +25,31 @@ bool isTabletDisplay() {
   return isTabletLogicalSize(display.size.shortestSide / ratio);
 }
 
-/// Teléfono: vertical, como el kiosko de bolsillo.
-/// Tableta: vertical y ambos horizontales. La cámara frontal no está
-/// siempre en el mismo borde; la interfaz sigue al sensor, así que
-/// al colocar la cámara arriba el botón queda derecho en cualquier modelo.
-List<DeviceOrientation> kioskOrientations({required bool tablet}) {
-  if (tablet) {
-    return const [
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ];
-  }
+/// Teléfono y tableta: vertical y ambos horizontales. La cámara frontal
+/// no está siempre en el mismo borde; la interfaz sigue al sensor, así
+/// que al colocar la cámara arriba el botón queda derecho.
+List<DeviceOrientation> kioskOrientations() {
   return const [
     DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
   ];
 }
 
 Future<void> applyKioskOrientations() async {
-  if (isTabletDisplay()) {
-    // `SENSOR` sigue el acelerómetro aunque el bloqueo de rotación
-    // del sistema esté activo. En iOS el canal no existe y se usa
-    // la lista de orientaciones de abajo.
-    try {
-      final applied = await _faceSdkChannel.invokeMethod<bool>(
-        'setSensorOrientation',
-      );
-      if (applied == true) return;
-    } on MissingPluginException {
-      // iOS y pruebas: sigue el camino de SystemChrome.
-    } catch (_) {}
-  }
+  // `SENSOR` sigue el acelerómetro aunque el bloqueo de rotación
+  // del sistema esté activo. En iOS el canal no existe y se usa
+  // la lista de orientaciones de abajo.
+  try {
+    final applied = await _faceSdkChannel.invokeMethod<bool>(
+      'setSensorOrientation',
+    );
+    if (applied == true) return;
+  } on MissingPluginException {
+    // iOS y pruebas: sigue el camino de SystemChrome.
+  } catch (_) {}
 
-  await SystemChrome.setPreferredOrientations(
-    kioskOrientations(tablet: isTabletDisplay()),
-  );
+  await SystemChrome.setPreferredOrientations(kioskOrientations());
 }
 
 /// `medium` en CameraX es 720×480. En una tableta esa textura se estira
